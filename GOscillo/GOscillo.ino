@@ -678,7 +678,7 @@ void plotFFT() {
 void draw_scale() {
   int ylim = LCD_HEIGHT - 8;
   float fhref, nyquist;
-  display.setTextColor(TXTCOLOR);
+  display.setTextColor(TXTCOLOR, BGCOLOR);
   display.setCursor(0, ylim); display.print("0Hz"); 
   fhref = freqhref();
   nyquist = 5.0e6 / fhref; // Nyquist frequency
