@@ -1,6 +1,8 @@
 # STM32F103C8T6IPSOscilloscope
 STM32F103C8T6 0.96-inch 80x160 LCD dual channel oscilloscope with Pulse Generator, DDS Function Generator
 
+<img src="DSC03451.jpg">
+
 This displays an oscilloscope screen on a 0.96-inch 80x160 LCD.
 The settings are controled by the 5 direction switch.
 It contains Pulse Generator, DDS Function Generator.
