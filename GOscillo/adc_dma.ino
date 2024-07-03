@@ -132,9 +132,9 @@ void adc_set_speed(void) {
       break;
     case 5: 
     case 6:
-      adc_set_prescaler(ADC_PRE_PCLK2_DIV_2);
-      myADC1.setSampleRate(ADC_SMPR_7_5);
-      myADC2.setSampleRate(ADC_SMPR_7_5);
+      adc_set_prescaler(ADC_PRE_PCLK2_DIV_4);
+      myADC1.setSampleRate(ADC_SMPR_13_5);
+      myADC2.setSampleRate(ADC_SMPR_13_5);
       break;
     default:
       adc_set_prescaler(ADC_PRE_PCLK2_DIV_6);

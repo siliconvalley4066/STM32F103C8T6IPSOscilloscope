@@ -1,5 +1,5 @@
 /*
- * STM32F103C8T6 Oscilloscope using a 160x80 LCD Version 1.00
+ * STM32F103C8T6 Oscilloscope using a 160x80 LCD Version 1.01
  * The max DMA sampling rates is 5.14Msps with single channel, 2.57Msps with 2 channels.
  * The max software loop sampling rates is 100ksps with 2 channels.
  * + Pulse Generator
@@ -678,7 +678,7 @@ void plotFFT() {
 void draw_scale() {
   int ylim = LCD_HEIGHT - 8;
   float fhref, nyquist;
-  display.setTextColor(TXTCOLOR, BGCOLOR);
+  display.setTextColor(TXTCOLOR);
   display.setCursor(0, ylim); display.print("0Hz"); 
   fhref = freqhref();
   nyquist = 5.0e6 / fhref; // Nyquist frequency
@@ -820,6 +820,7 @@ void loadEEPROM() { // Read setting values from EEPROM (abnormal values will be 
   if (ifreq > 999999L) ++error;
   time_mag = EEPROM.read(p++);               // magnify timebase
   if (error > 0) {
+    EEPROM.format();
     set_default();
   }
 }
