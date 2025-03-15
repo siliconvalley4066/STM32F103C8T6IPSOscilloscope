@@ -1,5 +1,5 @@
 /*
- * STM32F103C8T6 Oscilloscope using a 160x80 LCD Version 1.02
+ * STM32F103C8T6 Oscilloscope using a 160x80 LCD Version 1.03
  * The max DMA sampling rates is 5.14Msps with single channel, 2.57Msps with 2 channels.
  * The max software loop sampling rates is 100ksps with 2 channels.
  * + Pulse Generator
@@ -22,7 +22,6 @@
 #define TFT_RST        PB11
 Adafruit_ST7735 display = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
-#define GPIN1 (22)
 #define BUTTON5DIR
 #define EEPROM_START 0
 #ifdef EEPROM_START
@@ -133,15 +132,13 @@ byte time_mag = 1;  // magnify timebase: 1, 2, 5 or 10
 #define CH1DCSW   PB5   // DC/AC switch ch1
 
 #define BGCOLOR   ST77XX_BLACK
-#define GRIDCOLOR 0x8410
+#define GRIDCOLOR 0x4208
 #define CH1COLOR  ST77XX_GREEN
 #define CH2COLOR  ST77XX_YELLOW
 #define FRMCOLOR  0xE71C
 #define TXTCOLOR  ST77XX_WHITE
 #define TRGCOLOR  ST77XX_MAGENTA
 #define HIGHCOLOR ST77XX_CYAN
-#define OFFCOLOR  0x8410
-#define REDCOLOR  ST77XX_RED
 #define LED_ON    LOW
 #define LED_OFF   HIGH
 
@@ -159,7 +156,7 @@ void setup(){
   display.setRotation(3);
   display.fillScreen(BGCOLOR);
 
-//  Serial.begin(115200);
+//  Serial.begin(115200); while(!Serial);
 #ifdef EEPROM_START
   if (EEPROM.init(0x801F000, 0x801F800, 0x400) != EEPROM_OK) {  // 1024 byte
     EEPROM.format();
@@ -173,7 +170,6 @@ void setup(){
   wdds = dds_mode;
 //  DrawGrid();
 //  DrawText();
-//  display.display();
   if (pulse_mode)
     pulse_init();                       // calibration pulse output
   if (dds_mode)
@@ -220,14 +216,13 @@ void DrawGrid() {
       display.drawFastHLine(LCD_WIDTH / 2 - 2, y - i, 5, GRIDCOLOR);  // Draw the vertical center line ticks
     }
   }
-  for (int x = 0; x <= disp_leng; x += DOTS_DIV) {
-    if (x >= 0){
-      display.drawFastVLine(x, 1, LCD_YMAX - 1, GRIDCOLOR); // Draw 11 vertical lines
-    }
+  for (int x = 0; x < disp_leng; x += DOTS_DIV) {
+    display.drawFastVLine(x, 0, LCD_YMAX, GRIDCOLOR); // Draw 11 vertical lines
     for (int i = 5; i < DOTS_DIV; i += 5) {
       display.drawFastVLine(x + i, LCD_YMAX / 2 -2, 5, GRIDCOLOR);  // Draw the horizontal center line ticks
     }
   }
+  if (!full_screen) display.drawFastVLine(DISPLNG, 0, LCD_YMAX, GRIDCOLOR);
 }
 #endif
 
@@ -411,31 +406,29 @@ void scaleDataArray(byte ad_ch, int trig_point)
   byte *pdata, ch_mode, range, ch;
   short ch_off;
   uint16_t *idata, *qdata;
-  long a, b;
+  long a;
 
   if (ad_ch == ad_ch1) {
     ch_off = ch1_off;
     ch_mode = ch1_mode;
     range = range1;
-    pdata = data[sample+1];
     idata = &cap_buf1[trig_point];
     ch = 1;
   } else {
     ch_off = ch0_off;
     ch_mode = ch0_mode;
     range = range0;
-    pdata = data[sample+0];
     idata = &cap_buf[trig_point];
     ch = 0;
   }
+  pdata = data[sample+ch];
   for (int i = 0; i < SAMPLES; i++) {
-    a = ((*idata + ch_off) * VREF[range] + 2048) >> 12;
+    a = ((*idata++ + ch_off) * VREF[range] + 2048) >> 12;
     if (a > LCD_YMAX) a = LCD_YMAX;
     else if (a < 0) a = 0;
     if (ch_mode == MODE_INV)
       a = LCD_YMAX - a;
     *pdata++ = (byte) a;
-    ++idata;
   }
   if (rate < RATE_ROLL) {
     switch (time_mag) {
@@ -574,7 +567,7 @@ void loop() {
       if (ch1_mode != MODE_OFF) data[1][i] = adRead(ad_ch1, ch1_mode, ch1_off, i);
       ClearAndDrawDot(i);
     }
-    DrawGrid(disp_leng);  // right side grid   
+    DrawGrid(disp_leng);  // right side grid
     // Serial.println(millis()-st0);
     digitalWrite(LED_BUILTIN, LED_OFF);
 //    DrawGrid();
@@ -605,18 +598,11 @@ void draw_screen() {
   }
 }
 
-#define textINFO 82
+#define textINFO (DISPLNG-48)
 void measure_frequency(int ch) {
-  int x1, x2;
   byte y = 1;
   freqDuty(ch);
-  x1 = textINFO, x2 = x1+18;
-  if (ch == 0) {
-    display.setTextColor(CH1COLOR, BGCOLOR);
-  } else {
-    display.setTextColor(CH2COLOR, BGCOLOR);
-  }
-  TextBG(&y, x1, 8);
+  TextBG(&y, textINFO, 8);
   float freq = waveFreq[ch];
   if (freq < 999.5)
     display.print(freq);
@@ -628,7 +614,7 @@ void measure_frequency(int ch) {
   }
   display.print("Hz");
   if (fft_mode) return;
-  TextBG(&y, x2, 5);
+  TextBG(&y, textINFO+18, 5);
   float duty = waveDuty[ch];
   if (duty > 99.9499) duty = 99.9;
   display.print(duty, 1);  display.print('%');
@@ -636,22 +622,15 @@ void measure_frequency(int ch) {
 
 void measure_voltage(int ch) {
   int x;
-  byte y;
   if (fft_mode) return;
   float vavr = VRF * dataAve[ch] / 40950.0;
   float vmax = VRF * dataMax[ch] / 4095.0;
   float vmin = VRF * dataMin[ch] / 4095.0;
-  x = textINFO, y = 21;
-  if (ch == 0) {
-    display.setTextColor(CH1COLOR, BGCOLOR);
-  } else {
-    display.setTextColor(CH2COLOR, BGCOLOR);
-  }
-  TextBG(&y, x, 8);
+  display.setCursor(textINFO, txtLINE2);
   display.print("max");  display.print(vmax); if (vmax >= 0.0) display.print('V');
-  TextBG(&y, x, 8);
+  display.setCursor(textINFO, txtLINE3);
   display.print("avr");  display.print(vavr); if (vavr >= 0.0) display.print('V');
-  TextBG(&y, x, 8);
+  display.setCursor(textINFO, txtLINE4);
   display.print("min");  display.print(vmin); if (vmin >= 0.0) display.print('V');
 }
 

@@ -1,6 +1,4 @@
 void DrawText() {
-//  display.fillRect(DISPLNG+1,0,LCD_WIDTH-DISPLNG-1,LCD_HEIGHT, BGCOLOR); // clear text area that will be drawn below 
-
   switch (menu) {
   case 0:
     set_line_color(0);
@@ -121,6 +119,11 @@ void DrawText() {
   }
   if (info_mode & 3) {
     int ch = (info_mode & 4) ? 1 : 0;
+    if (ch == 0) {
+      display.setTextColor(CH1COLOR, BGCOLOR);
+    } else {
+      display.setTextColor(CH2COLOR, BGCOLOR);
+    }
     dataAnalize(ch);
     if (info_mode & 1)
       measure_frequency(ch);
@@ -214,11 +217,12 @@ void CheckSW() {
   saveTimer = 5000;     // set EEPROM save timer to 5 second
   if (sw == BTN_FULL) {
     full_screen = !full_screen;
-    display.fillRect(DISPLNG+1,0,LCD_WIDTH-DISPLNG-1,LCD_HEIGHT, BGCOLOR);  // clear text area that will be drawn below 
-    display.fillRect(textINFO, txtLINE0, 48, 48, BGCOLOR);  // clear frequency & voltage area
-    display.fillRect(DISPLNG - 30, txtLINE6, 54, 18, BGCOLOR);  // clear pwm parameters
-    display.fillRect(LCD_WIDTH - 54, txtLINE7, 54, 8, BGCOLOR); // clear dds frequency
-    display.fillRect(DISPLNG - 78, txtLINE6, 78, 8, BGCOLOR); // clear frequency count
+    clear_text_area();
+    clear_frequency_area();
+    clear_voltage_area();
+    clear_pwm_parameters();
+    clear_dds_frequency();
+    clear_frequency_count();
   } else {
     switch (menu) {
     case 0:
@@ -237,7 +241,6 @@ void CheckSW() {
       break;
     }
     if (!full_screen) DrawText();
-//    display.display();
   }
   lastsw = sw;
 }
@@ -461,7 +464,7 @@ void menu2_sw(byte sw) {
       info_mode |= 1;
     } else if (sw == BTN_LEFT) {  // OFF
       info_mode &= ~1;
-      display.fillRect(textINFO, txtLINE0, 48, 18, BGCOLOR);  // clear frequency area
+      clear_frequency_area();
     }
     break;
   case 4: // Voltage display
@@ -469,7 +472,7 @@ void menu2_sw(byte sw) {
       info_mode |= 2;
     } else if (sw == BTN_LEFT) {  // OFF
       info_mode &= ~2;
-      display.fillRect(textINFO, txtLINE2, 48, 28, BGCOLOR);  // clear voltage area
+      clear_voltage_area();
     }
     break;
   case 5: // PWM
@@ -484,7 +487,7 @@ void menu2_sw(byte sw) {
     } else if (sw == BTN_LEFT) {  // -
       pulse_close();
       pulse_mode = false;
-      display.fillRect(DISPLNG - 30, txtLINE6, 54, 18, BGCOLOR);  // clear pwm parameters
+      clear_pwm_parameters();
     }
     break;
   case 6: // PWM Duty ratio
@@ -550,7 +553,7 @@ void menu3_sw(byte sw) {
     } else if (sw == BTN_LEFT) {  // -
       dds_close();
       dds_mode = wdds = false;
-      display.fillRect(LCD_WIDTH - 54, txtLINE7, 54, 8, BGCOLOR); // clear dds frequency
+      clear_dds_frequency();
     }
     break;
   case 3: // WAVE
@@ -587,7 +590,7 @@ void menu3_sw(byte sw) {
     } else if (sw == BTN_LEFT) {  // off
       fcount_mode = false;
       PeriodCount.end();
-      display.fillRect(DISPLNG - 78, txtLINE6, 78, 8, BGCOLOR); // clear frequency count
+      clear_frequency_count();
     }
     break;
   }
@@ -608,13 +611,13 @@ void increment_item() {
 //  if (item == 3) item = 4;    // skip real/DMA
   if (item < 16 || item > 18) wfft = false; // exit FFT mode
   if (item == 24) {
-    display.fillRect(DISPLNG - 30, txtLINE6, 54, 18, BGCOLOR);  // clear pwm parameters
+    clear_pwm_parameters();
   }
   if (item == 29) {
-    display.fillRect(LCD_WIDTH - 54, txtLINE7, 54, 8, BGCOLOR); // clear dds frequency
+    clear_dds_frequency();
   }
   if (item == 0) {
-    display.fillRect(DISPLNG - 78, txtLINE6, 78, 8, BGCOLOR); // clear frequency count
+    clear_frequency_count();
   }
   menu = item >> 3;
 }
@@ -625,13 +628,13 @@ void decrement_item() {
 //  if (item == 3) item = 2;    // skip real/DMA
   if (item < 16 || item > 18) wfft = false; // exit FFT mode
   if (item == 20) {
-    display.fillRect(DISPLNG - 30, txtLINE6, 54, 18, BGCOLOR);  // clear pwm parameters
+    clear_pwm_parameters();
   }
   if (item == 25) {
-    display.fillRect(LCD_WIDTH - 54, txtLINE7, 54, 8, BGCOLOR); // clear dds frequency
+    clear_dds_frequency();
   }
   if (item == 23) {
-    display.fillRect(DISPLNG - 78, txtLINE6, 78, 8, BGCOLOR); // clear frequency count
+    clear_frequency_count();
   }
   menu = item >> 3;
 }
@@ -645,4 +648,28 @@ byte sw_accel(byte sw) {
     else if (curtime - vtime > 2000) diff = 2;
   }
   return (diff);
+}
+
+void clear_text_area(void) {
+  display.fillRect(DISPLNG+1,0,LCD_WIDTH-DISPLNG-1,LCD_HEIGHT, BGCOLOR);  // clear text area that will be drawn below
+}
+
+void clear_pwm_parameters(void) {
+  display.fillRect(DISPLNG - 30, txtLINE6, 54, 18, BGCOLOR);  // clear pwm parameters
+}
+
+void clear_frequency_count(void) {
+  display.fillRect(DISPLNG - 78, txtLINE6, 78, 8, BGCOLOR); // clear frequency count
+}
+
+void clear_dds_frequency(void) {
+  display.fillRect(LCD_WIDTH - 54, txtLINE7, 54, 8, BGCOLOR); // clear dds frequency
+}
+
+void clear_frequency_area(void) {
+  display.fillRect(textINFO, txtLINE0, 48, 18, BGCOLOR);  // clear frequency area
+}
+
+void clear_voltage_area(void) {
+  display.fillRect(textINFO, txtLINE2, 48, 28, BGCOLOR);  // clear voltage area
 }
