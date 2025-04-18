@@ -586,7 +586,6 @@ void menu3_sw(byte sw) {
       }
       fcount_mode = true;
       PeriodCount.begin(1000);
-      set_range();
     } else if (sw == BTN_LEFT) {  // off
       fcount_mode = false;
       PeriodCount.end();

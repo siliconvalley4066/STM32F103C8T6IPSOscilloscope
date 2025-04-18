@@ -1,5 +1,5 @@
 /*
- * STM32F103C8T6 Oscilloscope using a 160x80 LCD Version 1.04
+ * STM32F103C8T6 Oscilloscope using a 160x80 LCD Version 1.05
  * The max DMA sampling rates is 5.14Msps with single channel, 2.57Msps with 2 channels.
  * The max software loop sampling rates is 100ksps with 2 channels.
  * + Pulse Generator
@@ -227,7 +227,6 @@ void DrawGrid() {
 #endif
 
 //const double freq_ratio = 20000.0 / 19987.0;
-bool freq_skip = false;
 
 void fcount_disp() {
   unsigned long count;
@@ -237,18 +236,15 @@ void fcount_disp() {
   if (!fcount_mode) return;
   if (status = PeriodCount.available()) { // wait finish  restart
     count = PeriodCount.read();
-    if (freq_skip) {
-      freq_skip = false;
-    } else {
-      dfreq = PeriodCount.countToFrequency(count);
-      displayfreq(dfreq);
-      if ((status == 1) && (dfreq > 0.001)) {     // ready
-        freq_skip = PeriodCount.adjust(dfreq);
-      } else {  // timeout
-        set_range();
-      }
+    dfreq = PeriodCount.countToFrequency(count);
+    if ((status == 1) && (dfreq > 0.001)) {     // ready
+      PeriodCount.adjust(dfreq);
+    } else {  // timeout
+      PeriodCount.end();
+      PeriodCount.begin(1000);
     }
   }
+  displayfreq(dfreq);
 }
 
 void displayfreq(double freq) {
@@ -280,22 +276,6 @@ void displayfreq(double freq) {
     display.setCursor(DISPLNG - 78, txtLINE6); display.print(ss);
     display.print("Hz  ");
   }
-}
-
-void set_range(void) {
-  unsigned long count;
-  PeriodCount.end();
-  // identify 360MHz - 8kHz
-  PeriodCount.setpre(8);
-  count = 8000 * PeriodCount.freqcount(1);    // 1msec gate
-  // identify 655.350kHz - 10Hz
-  PeriodCount.setpre(1);
-  if (count < 500000) {   // under 500kHz
-    count = 10 * PeriodCount.freqcount(100);  // 100msec gate
-  }
-  PeriodCount.adjust((double) count);
-  PeriodCount.begin(1000);
-  freq_skip = true; // throw away first result
 }
 
 void display_range(byte rng) {
